@@ -40,14 +40,7 @@ function App() {
                   <h1 className="hover:text-white">Play</h1>
               </div>
             </Link>
-            <Link >
-              <div className=" font-san font-semibold text-2xl pl-5 text-primary  transition-all duration-150 group flex justify-center items-center">
-                  <div className=" scale-0 mr-3 hidden opacity-0 rounded-md p-3 bg-white text-black text-sm transition-all duration-200 group-hover:inline-block group-hover:scale-100 group-hover:opacity-100">
-                    Learn From the Best
-                  </div>
-                  <h1 className="hover:text-white">Learn</h1>
-              </div>
-            </Link>
+            <Link className=" font-san font-semibold text-2xl pl-5 text-primary hover:text-white transition-all duration-150">Learn</Link>
             <Link className=" font-san font-semibold text-2xl pl-5 text-primary hover:text-white transition-all duration-150">Analyze</Link>
             <Link className=" font-san font-semibold text-2xl pl-5 text-primary hover:text-white transition-all duration-150">News</Link>
           </div>
