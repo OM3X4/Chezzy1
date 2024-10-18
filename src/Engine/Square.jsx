@@ -3,15 +3,8 @@ import { CgMathEqual } from "react-icons/cg";
 /* eslint-disable no-unused-vars */
 import { BiHash } from "react-icons/bi"; 
 import { TbCrown } from "react-icons/tb"; 
-import { TbMath1Divide2 } from "react-icons/tb";
 import React from 'react'
-import { FaChessQueen } from "react-icons/fa";
-import { FaChessKing } from "react-icons/fa";
-import { FaChessBishop } from "react-icons/fa";
-import { GiChessKnight } from "react-icons/gi";
-import { GiChessRook } from "react-icons/gi";
-import { FaChessPawn } from 'react-icons/fa';
-import getChessPieceIcon from '../assets/assets.jsx';
+
 const pieceImages = {
     K: 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150/wk.png', // White King
     Q: 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150/wq.png', // White Queen

@@ -1,26 +1,11 @@
 /* eslint-disable */
 import { Chess, PAWN } from 'chess.js';
 import { engine } from './EngineKO4.js';
-// import { Chess } from 'chessops/chess';
-// import { parseFen } from 'chessops/fen';
-import { squareValue } from '../assets/assets.jsx';
 import React, { useEffect, useState } from 'react'
 import Square from './Square'
-import { layout } from '../assets/assets.jsx'
-import { layoutToFEN } from "../assets/assets.jsx";
-import { kingSquares } from '../assets/assets.jsx';
-import EvaluationBar from './bar.jsx';
-const squareNames = [
-    'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8',
-    'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8',
-    'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8',
-    'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8',
-    'e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7', 'e8',
-    'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8',
-    'g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7', 'g8',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8'
-]
-const corners = ["f8" , "g8" , "h8" , "a8" , "b8" , "c8" , "a1" , "b1" , "c1" , "f1" , "g2" , "h3"]
+import { layout } from './assets.jsx'
+import { layoutToFEN } from "./assets.jsx";
+
 const order = new Map();
 order.set("c" , 4)
 order.set("p" , 3)
@@ -56,8 +41,6 @@ function Board({white}) {
     const [isCheck , setIsCheck] = useState(false)
     const [history , setHistory] = useState([])
     const [ isStalemate , setIsStaleMated] = useState(false)
-    const [evaluation , setEval] = useState(0)
-    const [foldChecker , setFoldChecker] = useState([])
     const CHESS = new Chess(layoutToFEN(piecesLay , isWhiteTurn , castlingRights))
     const [MainChess , setMainChess] = useState(CHESS)
     let FENcounter = new Map()
@@ -376,7 +359,6 @@ function Board({white}) {
         <div className='bg-background h-[100vh] w-[100vw]'>
             <div className=' flex justify-between items-center h-full gap-20 w-full mx-auto px-24 sm:flex-col lg:flex-row'>
                 <div className='flex justify-center'>
-                        <EvaluationBar evaluation={evaluation}/>
                     <div className=' grid grid-rows-8 grid-cols-8 gap-0 border-4 border-black lg:size-[40vw] sm:size-[50vw] mt-20'>
                         {rows.map((row , index) => {
                             return cols.map((col , i) => {

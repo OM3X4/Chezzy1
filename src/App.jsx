@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter as Router } from "react-router-dom"
 import { AnimatedBackground } from 'animated-backgrounds'
 import { Link } from "react-router-dom";
-
+import Board from "./Engine/Board";
 import './App.css'
 
 function App() {
@@ -25,7 +25,7 @@ function App() {
 
   return (
     <>
-        <AnimatedBackground  animationName="particleNetwork" style={{ filter: "brightness(80%) grayscale(100%)"}} />
+        {/* <AnimatedBackground  animationName="particleNetwork" style={{ filter: "brightness(80%) grayscale(100%)"}} />
         <nav className=' bg-black bg-opacity-300  h-20 w-full  text-center px-44 flex justify-between items-center gap-7'>
           <div className="group items-end flex justify-center">
             <FaChessBishop className=" text-white text-4xl group-hover:text-primary transition-all duration-150"/>
@@ -59,7 +59,8 @@ function App() {
               <BsFacebook className=" text-white text-xl hover:text-primary transition-all duration-150 cursor-pointer"/>
               <AiFillYoutube className=" text-white text-xl hover:text-primary transition-all duration-150 cursor-pointer"/>
             </div>
-        </footer>
+        </footer> */}
+        <Board white={true}/>
     </>
   )
 }

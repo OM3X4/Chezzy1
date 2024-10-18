@@ -427,13 +427,14 @@ function sortedMoves4(fen , isWhite = false , FENcounter){
     let moves = sortedMoves2(chess);
     let scoreCounter = new Map()
 
-
+    console.time("sorting 2")
     for(const move of moves){
         chess.play(move)
         let score = minimax(chess.fen() , 0 , false , steps , -Infinity , Infinity , skips , isWhite , 0 , 1 , FENcounter , true)
         scoreCounter.set(move , score)
         chess = new Position(fen)
     }
+    console.timeEnd("sorting 2")
 
     moves.sort((a , b) => scoreCounter.get(b) - scoreCounter.get(a))
 
@@ -467,7 +468,7 @@ function sortedMoves3(fen , isWhite = false , FENcounter){
 
     for(const move of moves){
         chess.play(move)
-        let score = minimax(chess.fen() , 0 , false , steps , -Infinity , Infinity , skips , isWhite , 0 , 3 , FENcounter)
+        let score = minimax(chess.fen() , 0 , false , steps , -Infinity , Infinity , skips , isWhite , 0 , 1 , FENcounter , true)
         scoreCounter.set(move , score)
         chess = new Position(fen)
     }
@@ -509,35 +510,7 @@ function sortedMoves2(chess){
     return moves
 }
 
-function sortedMoves1(chess) {
-    const moves = chess.moves();
 
-    // Score each move based on its type
-    const scoredMoves = moves.map(move => {
-        let score = 0;
-
-        // Assign scores based on the move type
-        if (move.flags === "c") { // Capture
-            score += 100; // Higher score for captures
-        } else if (move.flags === "np" || move.flags === "cp") { // Promotion
-            score += 200; // Highest score for promotions
-        } else if (move.flags === "b") { // Pawn move
-            score += 10; // Lower score for pawn moves
-        } else if (move.flags === "n") { // Knight move
-            score += 5; // Even lower score for other moves
-        }
-
-        // Optionally, you could also incorporate additional scoring criteria,
-        // such as the piece's value being captured or strategic importance.
-
-        return { move, score }; // Return move with its score
-    });
-
-    // Sort the moves based on their scores in descending order
-    const sorted = scoredMoves.sort((a, b) => b.score - a.score).map(item => item.move);
-
-    return sorted;
-}
 
 
 
@@ -750,7 +723,7 @@ function minimax(fen , depth , isMaximizing, steps , alpha , beta , skips , isWh
         return TT.get(fen)[0];
     }else{
         let moves = sortedMoves2(base)
-        if(!sorting){
+        if(false){
             if(depth == 0){
                 moves = sortedMoves4(fen , !isWhite);
             }
@@ -794,7 +767,10 @@ export function engine(fen , isWhite = false , FENcounter = EmptyMap){
     let skips = { count: 0}
     let bestMove = null
     let bestScore = -Infinity
+    console.time("firstSort")
     const moves = sortedMoves3(fen , isWhite);
+    // const moves = sortedMoves2(chess)
+    console.timeEnd("firstSort")
     let numberOfPieces = 0;
     for(const square of squareNames){
         if(chess.square(square) != '-'){
@@ -808,8 +784,8 @@ export function engine(fen , isWhite = false , FENcounter = EmptyMap){
     if(opening != 0){
         for(const move of moveOpening){
             if(move.from() == opening[0] && move.to() == opening[1]){
-                // console.log("Theory")
-                // return [move.from() , move.to() , false]
+                console.log("Theory")
+                return [move.from() , move.to() , false]
                 return `${move.from()}${move.to()}`
             }
         }
@@ -850,11 +826,11 @@ export function engine(fen , isWhite = false , FENcounter = EmptyMap){
         }
         chess = new Position(fen)
     }
-    // console.log("score is " , bestScore)
-    // console.log("bestMove : " , [bestMove.from() , bestMove.to()] , bestScore , "number of eval : " , steps.count , "number of skips : " , skips.count)
-    // console.log("transposition table size after this move " , TT.size)
-    // return [bestMove.from() , bestMove.to() , bestMove.isCastling()];
-    return `${bestMove.from()}${bestMove.to()}`
+    console.log("score is " , bestScore)
+    console.log("bestMove : " , [bestMove.from() , bestMove.to()] , bestScore , "number of eval : " , steps.count , "number of skips : " , skips.count)
+    console.log("transposition table size after this move " , TT.size)
+    return [bestMove.from() , bestMove.to() , bestMove.isCastling()];
+    // return `${bestMove.from()}${bestMove.to()}`
 }
 
 
@@ -863,13 +839,13 @@ export function engine(fen , isWhite = false , FENcounter = EmptyMap){
 
 
 
-const args = process.argv.slice(2); // Skip the first two default arguments
-if (args.length >= 1) {
-    const result = engine(args[0]);
-    console.log(result); // Output the result to stdout
-} else {
-    console.log("Not enough arguments provided.");
-}
+// const args = process.argv.slice(2); // Skip the first two default arguments
+// if (args.length >= 1) {
+//     const result = engine(args[0]);
+//     console.log(result); // Output the result to stdout
+// } else {
+//     console.log("Not enough arguments provided.");
+// }
 
 // console.time("time")
 
