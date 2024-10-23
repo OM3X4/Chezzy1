@@ -14,8 +14,12 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter as Router } from "react-router-dom"
 import { AnimatedBackground } from 'animated-backgrounds'
 import { Link } from "react-router-dom";
-import Board from "./Engine/Board";
 import './App.css'
+import Play from "./comps/Play";
+
+function handleRestart(){
+  
+}
 
 function App() {
   useEffect(() => {
@@ -25,8 +29,8 @@ function App() {
 
   return (
     <>
-        {/* <AnimatedBackground  animationName="particleNetwork" style={{ filter: "brightness(80%) grayscale(100%)"}} />
-        <nav className=' bg-black bg-opacity-300  h-20 w-full  text-center px-44 flex justify-between items-center gap-7'>
+        <AnimatedBackground  animationName="particleNetwork" style={{ filter: "brightness(40%) grayscale(100%)"}} />
+        <nav className=' bg-black bg-opacity-300  h-16 w-full  text-center px-44 flex justify-between items-center gap-7'>
           <div className="group items-end flex justify-center">
             <FaChessBishop className=" text-white text-4xl group-hover:text-primary transition-all duration-150"/>
             <Link to={"/"} className=" font-san font-extrabold text-3xl pl-5 text-primary group-hover:text-white transition-all duration-150">Cheezy</Link>
@@ -45,9 +49,10 @@ function App() {
             <Link className=" font-san font-semibold text-2xl pl-5 text-primary hover:text-white transition-all duration-150">News</Link>
           </div>
         </nav>
-        <Home />
+        {/* <Home /> */}
+        <Play p1={{name: "OmarEmad" , rate: 1263 , image: "../public/Main full.png"}} p2={{name:"QueenFish" , rate:1600 , image:"https://www.chess.com/bundles/web/images/noavatar_l.84a92436@2x.gif"}} deadB={["PB" , "PB" , "NB" , "PB"].sort()} deadW={["P" , "P" , "N" ,"P" , "P" , "P" , "N" ,"P"  ,"P" , "P" , "N" ,"P"].sort()} white={true}/>
 
-        <footer className=" bg-black w-full h-16 fixed bottom-0 flex items-center justify-center">
+        <footer className=" bg-black w-full h-16 flex items-center justify-center">
             <div className=" flex justify-center items-center gap-4">
               <p className=" text-white pr-10">©All Copy Rights Reserved</p>
               <AiFillApple className=" text-white text-2xl hover:text-primary transition-all duration-150 cursor-pointer"/>
@@ -59,8 +64,7 @@ function App() {
               <BsFacebook className=" text-white text-xl hover:text-primary transition-all duration-150 cursor-pointer"/>
               <AiFillYoutube className=" text-white text-xl hover:text-primary transition-all duration-150 cursor-pointer"/>
             </div>
-        </footer> */}
-        <Board white={true}/>
+        </footer>
     </>
   )
 }

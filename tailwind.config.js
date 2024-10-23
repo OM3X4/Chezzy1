@@ -9,7 +9,8 @@ export default {
       colors:{
         primary:"#fea000",
         dark:"#739552",
-        light:"#ebecd0"
+        light:"#ebecd0",
+        selection: "#D4A6F2",
       }
     },
   },
