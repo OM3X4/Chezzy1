@@ -22,12 +22,12 @@ const pieceImages = {
 
 function icon(piece){
     if(piece){
-        return <img src={pieceImages[piece]} className=" w-[4.5vw] h-[4.5vw] self-center absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></img>
+        return <img src={pieceImages[piece]} className=" size-[90%] self-center absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></img>
     }
 }
 
 
-function Square({ dark, number, lay, click, avail , selected , ischeck , ischeckMated , isWhiteTurn , stale}) {
+function Square({ dark, number, lay, click, avail , selected , ischeck , ischeckMated , isWhiteTurn , stale , trail}) {
 
     // const red = (number == (isWhiteTurn ? "KB" : "K") && ischeck)
     const red = (lay[number] == (!isWhiteTurn ? "KB" : "K") && ischeck)
@@ -35,9 +35,10 @@ function Square({ dark, number, lay, click, avail , selected , ischeck , ischeck
     const islose = (ischeckMated && lay[number] == (!isWhiteTurn ? "KB" : "K"))
     const draw = (stale && (lay[number] == "K" || lay[number] == "KB"))
 
+    const isTrail = trail.includes(number)
 
-    const darkStyle = `group relative size-[100%] bg-dark text-xs flex flex-col justify-center items-center ${red ? " bg-red-500" : ""}`
-    const lightStyle = `group relative size-[100%] bg-light text-xs flex justify-center items-center ${red ? " bg-red-500" : ""}`
+    const darkStyle = `group relative size-[100%] bg-dark text-xs flex flex-col justify-center items-center ${isTrail ? "bg-trail" : ""} ${red ? " bg-red-500" : ""} `
+    const lightStyle = `group relative size-[100%] bg-light text-xs flex justify-center items-center ${isTrail ? "bg-trail " : ""} ${red ? " bg-red-500" : ""}`
     const numberDark = `absolute top-0 left-0 p-1 text-[1vw] font-mono font-medium ${dark ? "text-light": "text-dark"}`
     return (
 <>
@@ -45,25 +46,25 @@ function Square({ dark, number, lay, click, avail , selected , ischeck , ischeck
         onClick={e => click(number)}>
         
 
-        <span className={`absolute top-0 left-0 p-1 text-[.9vw] font-mono font-bold ${dark ? "text-light": "text-dark"}`}>{number}</span>
+        <span className={`absolute top-0 left-0 p-1 text-[100%] font-mono font-bold ${dark ? "text-light": "text-dark"}`}>{number}</span>
         
 
             <div>
         {selected === number 
             ? <div className=' border-selection border-4 border-avail border-opacity-70 group-hover:border-8 transition-all duration-100
-            rounded-full size-[4.5vw] flex justify-center items-center self-center'></div> : null}
+            rounded-full size-[9vw] md:size-[50px] lg:size-[55px] xl:size-[65px] xl:border-[5px] flex justify-center items-center self-center'></div> : null}
             </div>
             {icon(lay[number]) ? icon(lay[number]) : null}
-            {iswin ? <div className=" bg-orange-500 rounded-full absolute size-[1.5vw] top-2 right-2 flex justify-center items-center"><TbCrown className=" text-white text-xl"/></div> 
+            {iswin ? <div className=" bg-orange-500 rounded-full absolute size-[3vw] lg:size-[25px] md:size-[15px] top-2 right-2 flex justify-center items-center"><TbCrown className=" text-white text-xl"/></div> 
             : null}
-            {islose ? <div className=" bg-black rounded-full absolute size-[1.5vw] top-2 right-2 flex justify-center items-center"><BiHash className=" text-white text-xl"/></div> 
+            {islose ? <div className=" bg-black rounded-full absolute size-[3vw] lg:size-[25px] md:size-[15px] top-2 right-2 flex justify-center items-center"><BiHash className=" text-white text-xl"/></div> 
             : null}
-            {draw ? <div className=" bg-gray-400 rounded-full absolute size-[2vw] top-1 right-1 flex justify-center items-center"><CgMathEqual className="text-white text-4xl"/></div> 
+            {draw ? <div className=" bg-gray-400 rounded-full absolute size-[3vw] lg:size-[25px] md:size-[15px] top-1 right-1 flex justify-center items-center"><CgMathEqual className="text-white text-4xl"/></div> 
             : null}
         
         {(avail ? avail.includes(number) : false) ? 
-            lay[number] ? <div className='border-4 border-selection  rounded-full opacity-70 group-hover:border-8 size-[4.5vw] flex justify-center items-center self-center fixed transition-all duration-100'></div>
-            : <div className='bg-selection size-7 rounded-full self-center fixed opacity-50 group-hover:rounded-none group-hover:h-[5vw] group-hover:w-[5vw] transition-all duration-100'></div> 
+            lay[number] ? <div className='border-4 border-selection  rounded-full opacity-70 group-hover:border-8 size-16 flex justify-center items-center self-center fixed transition-all duration-100'></div>
+            : <div className='bg-selection size-7 rounded-full self-center fixed opacity-50 group-hover:size-10 transition-all duration-100'></div> 
             : null}
     </div>
 </>

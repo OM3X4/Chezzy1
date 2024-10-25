@@ -1,10 +1,20 @@
 /* eslint-disable */
 import { Chess, PAWN } from 'chess.js';
-import { engine } from '../../Engine/EngineKO4.js';
 import React, { useEffect, useState } from 'react'
 import Square from './Square.jsx'
 import { layout } from './assets.jsx'
 import { layoutToFEN } from "./assets.jsx";
+
+const squareNames = [
+    'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8',
+    'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8',
+    'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8',
+    'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8',
+    'e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7', 'e8',
+    'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8',
+    'g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7', 'g8',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8'
+]
 
 const order = new Map();
 order.set("c" , 4)
@@ -22,7 +32,7 @@ const checkAudio = new Audio("https://images.chesscomfiles.com/chess-themes/soun
 checkAudio.preload = "auto";
 
 
-function BoardPVP({white}) {
+function BoardPVP({white , setterW , setterB}) {
 
     //locating kings
     const [isCheckMated , setIsCheckMated] = useState(false)
@@ -39,10 +49,8 @@ function BoardPVP({white}) {
     const [cols , setCols] = useState(Array(8).fill().map((_, index) => String.fromCharCode(index + 97))) 
     const [piecesLay , setPiecesLay] = useState(layout)
     const [isCheck , setIsCheck] = useState(false)
-    const [history , setHistory] = useState([])
     const [ isStalemate , setIsStaleMated] = useState(false)
-    const CHESS = new Chess(layoutToFEN(piecesLay , isWhiteTurn , castlingRights))
-    const [MainChess , setMainChess] = useState(CHESS)
+    const [trail , setTrail] = useState([])
     let FENcounter = new Map()
 
 
@@ -66,13 +74,72 @@ function BoardPVP({white}) {
         castling(piecesLay , castlingRights)
     })
 
-
-
-
-
-
-
+    const initialWhitePieces = {
+        'R': 2,  // Rooks
+        'N': 2,  // Knights
+        'B': 2,  // Bishops
+        'Q': 1,  // Queen
+        'K': 1,  // King
+        'P': 8   // Pawns
+    };
     
+    const initialBlackPieces = {
+        'RB': 2,  // Black Rooks
+        'NB': 2,  // Black Knights
+        'BB': 2,  // Black Bishops
+        'QB': 1,  // Black Queen
+        'KB': 1,  // Black King
+        'PB': 8   // Black Pawns
+    };
+    
+    // Function to get dead pieces
+    function getDeadPieces(layout) {
+        // Count current pieces on the board
+        const currentPieceCounts = {
+            // White pieces
+            'R': 0, 'N': 0, 'B': 0, 'Q': 0, 'K': 0, 'P': 0,
+            // Black pieces
+            'RB': 0, 'NB': 0, 'BB': 0, 'QB': 0, 'KB': 0, 'PB': 0
+        };
+    
+        // Count pieces currently on the board
+        for (let square in layout) {
+            const piece = layout[square];
+            if (piece) {
+                currentPieceCounts[piece]++;
+            }
+        }
+    
+        // Calculate dead pieces by comparing with initial counts
+        const deadWhitePieces = [];
+        const deadBlackPieces = [];
+    
+        // Check white pieces
+        for (let piece in initialWhitePieces) {
+            const missing = initialWhitePieces[piece] - (currentPieceCounts[piece] || 0);
+            for (let i = 0; i < missing; i++) {
+                deadWhitePieces.push(piece);
+            }
+        }
+    
+        // Check black pieces
+        for (let piece in initialBlackPieces) {
+            const missing = initialBlackPieces[piece] - (currentPieceCounts[piece] || 0);
+            for (let i = 0; i < missing; i++) {
+                deadBlackPieces.push(piece);
+            }
+        }
+    
+        return [ deadWhitePieces, deadBlackPieces ];
+    }
+    
+
+    //set dead pieces
+    useEffect(() => {
+        const dead = getDeadPieces(piecesLay);
+        setterW(dead[0]);
+        setterB(dead[1])
+    } , [piecesLay])
 
 
 
@@ -140,7 +207,7 @@ function BoardPVP({white}) {
                         let pieceType = piecesLay[start].length === 2 
                         ? (piecesLay[start] !== "PB" ? piecesLay[start][0].toUpperCase() : "") 
                         : (piecesLay[start] !== "P" ? piecesLay[start][0].toUpperCase() : "");
-                        
+                        setTrail([start , square])
                     // Construct the move description
                         let moveDescription = pieceType ? `${pieceType}${square}` : square;
                         if (piecesLay[square]) {
@@ -158,7 +225,6 @@ function BoardPVP({white}) {
                         } else {
                             moveAudio.play();
                         }
-                        setHistory(prev => [...prev, layoutToFEN(piecesLay , isWhiteTurn , castlingRights)]);
                         if(FENcounter.has(layoutToFEN(tranLay , isWhiteTurn , castlingRights))){
                             FENcounter.set(layoutToFEN(tranLay , isWhiteTurn , castlingRights), FENcounter.get(layoutToFEN(tranLay , isWhiteTurn , castlingRights)));
                         }else{
@@ -248,7 +314,7 @@ function BoardPVP({white}) {
 
     return (
         <>
-            <div className=' grid grid-rows-8 grid-cols-8 gap-0 lg:size-[600px] sm:size-[50vw]'>
+            <div className=' grid grid-rows-8 grid-cols-8 gap-0 xl:size-[600px] lg:size-[500px] md:size-[450px] sm:size-[80vw] size-fit '>
                         {rows.map((row , index) => {
                             return cols.map((col , i) => {
                                 // Convert column letter to a number (1 for 'a', 2 for 'b', ..., 8 for 'h')
@@ -258,7 +324,7 @@ function BoardPVP({white}) {
 
                                 return <div key={`${index}${i}`}>
                                     <Square number={`${col}${row}`} dark={isDark} lay={piecesLay} avail={available}click={HandleClick} selected={start}
-                                    ischeck={isCheck} ischeckMated={isCheckMated} isWhiteTurn={isWhiteTurn} stale={isStalemate}/>
+                                    ischeck={isCheck} ischeckMated={isCheckMated} isWhiteTurn={isWhiteTurn} stale={isStalemate} trail={trail}/>
                                 </div>
                             })
                         })}

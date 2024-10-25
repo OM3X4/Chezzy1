@@ -1,10 +1,12 @@
 /* eslint-disable */
 import { Chess, PAWN } from 'chess.js';
-import { engine } from '../../Engine/EngineKO4.js';
 import React, { useEffect, useState } from 'react'
 import Square from './Square.jsx'
 import { layout } from './assets.jsx'
 import { layoutToFEN } from "./assets.jsx";
+const worker = new Worker(new URL("../../chessWorker.js", import.meta.url), { type: 'module' });
+
+
 
 const order = new Map();
 order.set("c" , 4)
@@ -39,10 +41,10 @@ function Board({white}) {
     const [cols , setCols] = useState(Array(8).fill().map((_, index) => String.fromCharCode(index + 97))) 
     const [piecesLay , setPiecesLay] = useState(layout)
     const [isCheck , setIsCheck] = useState(false)
-    const [history , setHistory] = useState([])
     const [ isStalemate , setIsStaleMated] = useState(false)
-    const CHESS = new Chess(layoutToFEN(piecesLay , isWhiteTurn , castlingRights))
-    const [MainChess , setMainChess] = useState(CHESS)
+    const [trail , setTrail] = useState([])
+
+    
     let FENcounter = new Map()
 
 
@@ -72,9 +74,11 @@ function Board({white}) {
         const processMove = async () => {
                 if (!isCheckMated && !isStalemate) {
                     if (isWhiteTurn !== white) {
-                        let [from, to , isCastling] = getMove(layoutToFEN(piecesLay, isWhiteTurn , castlingRights));
+                        console.log(layoutToFEN(piecesLay, isWhiteTurn , castlingRights))
+                        let [from, to , isCastling] = await getMove(layoutToFEN(piecesLay, isWhiteTurn , castlingRights));
                         to = to.slice(0 , 2)
-                        console.log(to)
+                        // console.log(to)
+                        setTrail([from , to])
                         console.log(from , to , "those are the moves")
                         // setIsWhiteTurn(prev => !prev);
                         const tranLay = { ...piecesLay };
@@ -144,7 +148,6 @@ function Board({white}) {
                         } else {
                             moveAudio.play();
                         }
-                        setHistory(prev => [...prev, layoutToFEN(piecesLay , isWhiteTurn , castlingRights)]);
                         if(FENcounter.has(layoutToFEN(tranLay , isWhiteTurn , castlingRights))){
                             FENcounter.set(layoutToFEN(tranLay , isWhiteTurn , castlingRights), FENcounter.get(layoutToFEN(tranLay , isWhiteTurn , castlingRights)));
                         }else{
@@ -171,13 +174,19 @@ function Board({white}) {
     }, [piecesLay]);
 
 
-    function getMove(fen){
-        console.log(fen)
-        console.time("time")
-        const [from , to , isCastling] = engine(fen , white , 25000 , FENcounter);
-        console.timeEnd("time")
-        return [from , to , isCastling]
+    function getMove(fen) {
+        return new Promise((resolve) => {
+            // Send the FEN and additional data to the worker
+            worker.postMessage([fen, white, FENcounter]);
+    
+            // Wait for the worker to respond
+            worker.onmessage = function(message) {
+                console.log(message.data); // Log the result from the worker
+                resolve(message.data);      // Resolve the promise with the worker's result
+            };
+        });
     }
+    
 
 
     
@@ -239,6 +248,7 @@ function Board({white}) {
                             tranLay[square] = "QB"
                             // MainChess.load(layoutToFEN(tranLay , isWhiteTurn , castlingRights))
                         }
+                        setTrail([start , square])
                         setPiecesLay(tranLay);
                         setStart(null);
                         setAvailable([]);
@@ -266,7 +276,6 @@ function Board({white}) {
                         } else {
                             moveAudio.play();
                         }
-                        setHistory(prev => [...prev, layoutToFEN(piecesLay , isWhiteTurn , castlingRights)]);
                         if(FENcounter.has(layoutToFEN(tranLay , isWhiteTurn , castlingRights))){
                             FENcounter.set(layoutToFEN(tranLay , isWhiteTurn , castlingRights), FENcounter.get(layoutToFEN(tranLay , isWhiteTurn , castlingRights)));
                         }else{
@@ -356,7 +365,7 @@ function Board({white}) {
 
     return (
         <>
-            <div className=' grid grid-rows-8 grid-cols-8 gap-0 lg:size-[600px] sm:size-[50vw]'>
+            <div className=' grid grid-rows-8 grid-cols-8 gap-0 xl:size-[600px] lg:size-[500px] md:size-[450px] sm:size-[80vw] size-fit '>
                         {rows.map((row , index) => {
                             return cols.map((col , i) => {
                                 // Convert column letter to a number (1 for 'a', 2 for 'b', ..., 8 for 'h')
@@ -366,7 +375,7 @@ function Board({white}) {
 
                                 return <div key={`${index}${i}`}>
                                     <Square number={`${col}${row}`} dark={isDark} lay={piecesLay} avail={available}click={HandleClick} selected={start}
-                                    ischeck={isCheck} ischeckMated={isCheckMated} isWhiteTurn={isWhiteTurn} stale={isStalemate}/>
+                                    ischeck={isCheck} ischeckMated={isCheckMated} isWhiteTurn={isWhiteTurn} stale={isStalemate} trail={trail}/>
                                 </div>
                             })
                         })}

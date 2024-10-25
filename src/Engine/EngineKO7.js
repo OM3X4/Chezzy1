@@ -1,5 +1,4 @@
 /* eslint-disable */
-import { Chess } from 'chess.js';
 import { Position } from "kokopu"
 const squareNames = [
     'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8',
@@ -54,7 +53,6 @@ const oppositionMap = new Map([
 ]);
 
 
-const EmptyMap = new Map()
 const TT = new Map()
 
 const openingBook = {
@@ -254,97 +252,84 @@ const openingBook = {
 
 const book = new Map(Object.entries(openingBook))
 
-function evaluateEndgame(ourKing, enemyKing, numberOfPieces , ourRooks) {
-    let evaluation = 0;
-    let fileOP = false;
-    let rankOP = false;
-    // Convert king positions to numerical values
-    const enemyKingFile = enemyKing[0].charCodeAt() - 96;  // a=1, b=2, etc.
-    const enemyKingRank = parseInt(enemyKing[1]);
-    const ourKingFile = ourKing[0].charCodeAt() - 96;
-    const ourKingRank = parseInt(ourKing[1]);
-    
-    if (numberOfPieces <= 4) {  // We're in a basic endgame
-        // 1. Push enemy king to the edge
-        // Check file distance to nearest edge
-        const enemyFileEdgeDistance = Math.min(enemyKingFile - 1, 8 - enemyKingFile);
-        // Check rank distance to nearest edge
-        const enemyRankEdgeDistance = Math.min(enemyKingRank - 1, 8 - enemyKingRank);
-        
-        // The closer to the edge, the higher the bonus (max 70 points)
-        evaluation += (7 - enemyFileEdgeDistance) * 5;
-        evaluation += (7 - enemyRankEdgeDistance) * 5;
-        
-        // 2. Keep our king close to enemy king
-        const fileDistance = Math.abs(ourKingFile - enemyKingFile);
-        const rankDistance = Math.abs(ourKingRank - enemyKingRank);
-        const totalDistance = fileDistance + rankDistance;
-        
-        // Reward closer distance between kings (max 140 points)
-        evaluation += (14 - totalDistance) * 10;
-        
-        // 3. Big bonus if we've forced the enemy king to an edge
-        if (enemyKingFile === 1 || enemyKingFile === 8 || 
-            enemyKingRank === 1 || enemyKingRank === 8) {
-            evaluation += 100;
+
+
+
+
+
+
+
+
+
+
+function getOpeningMove(fen){
+    if(book.has(fen)){
+        const moves = book.get(fen);
+        const len = moves.length
+        const index = Math.floor(Math.random() * len)
+        return [moves[index].slice(0 ,2) ,moves[index].slice(2 ,4) ]
+    }else return 0
+}
+function searchSorting(fen ,isWhite){
+    let chess = new Position(fen);
+    let steps = { count:0 }
+    let skips = { count:0 }
+    let moves = BasicSorting(chess);
+    let scoreCounter = new Map()
+    let fenMove = new Map()
+
+    for(const move of moves){
+        chess = new Position(fen)
+        chess.play(move);
+        const scoreCounterInner = new Map()
+        let innerMoves = BasicSorting(chess);
+        const innerFen = chess.fen()
+        let BestScore = Infinity;
+        for(const innerMove of innerMoves){
+            chess.play(innerMove);
+            let score = evaluate(chess.fen() , isWhite , 2)
+            scoreCounterInner.set(innerMove , score)
+            BestScore = Math.min(score , BestScore)
+            chess = new Position(innerFen)
         }
-        
-        // 4. Even bigger bonus if enemy king is in a corner
-        if ((enemyKingFile === 1 || enemyKingFile === 8) && 
-            (enemyKingRank === 1 || enemyKingRank === 8)) {
-            evaluation += 200;
-        }
-        
-        // 5. Bonus for kings being in opposition
-        if (Math.abs(ourKingFile - enemyKingFile) === 2 && 
-            ourKingRank === enemyKingRank) {
-            fileOP = true;
-            evaluation += 100;  // Horizontal opposition
-        }
-        if (Math.abs(ourKingRank - enemyKingRank) === 2 && 
-            ourKingFile === enemyKingFile) {
-            rankOP = true;
-            evaluation += 100;  // Vertical opposition
-        }
-        //penalty if double ROOKS
-        if(ourRooks.length == 2){
-            if(ourRooks[0][0] == ourRooks[1][0]){
-                evaluation -= 50;
-            }else if(ourRooks[0][1] == ourRooks[1][1]){
-                evaluation -= 50;
+        let innerMoves1 = innerMoves.sort((a, b) => {
+            if (isWhite) {
+                // Engine is Black, sort ascending (prefer lower scores)
+                return scoreCounterInner.get(b) - scoreCounterInner.get(a);
+            } else {
+                // Engine is White, sort descending (prefer higher scores)
+                return scoreCounterInner.get(a) - scoreCounterInner.get(b);
             }
-        }
-
-        //penalty for rooks being near the king
-        if(ourRooks.length > 0){
-            for(const rook of ourRooks){
-
-                const rookFile = rook[0].charCodeAt() - 96;
-                const rookRank = parseInt(rook[1])
-
-                const fileDistance = Math.abs(rookFile - enemyKingFile);
-                const rankDistance = Math.abs(rookRank - enemyKingRank);
-                const totalDistance = fileDistance + rankDistance;
-                evaluation += totalDistance * 50
-                if(rankOP && rookRank == enemyKingRank){
-                    evaluation += 1000;
-                }else if(fileOP && rookFile == enemyKingFile){
-                    evaluation += 1000;
-                }
-            }
-
-        }
-
-        //reward for taking opposition when enemyking is in the corner
-
-
-
+        });
+        // innerMoves1 = innerMoves1.map(move => { return {from: move.from() , to:move.to()}})
+        scoreCounter.set(move , BestScore)
+        fenMove.set(innerFen , innerMoves1.slice(0 , 150))
     }
-    
-    return evaluation / 100;  // Scale down the evaluation
+    let moves1 = moves.sort((a  , b ) => scoreCounter.get(b) - scoreCounter.get(a))
+    // moves1 = moves1.map(move => { return {from: move.from() , to:move.to()}})
+    fenMove.set(fen , moves1.slice(0 , 10))
+
+    return fenMove
+
 }
 
-function forceKingToCornerEndgameEval(friendlyKingSquare, opponentKingSquare , rooks , fen) {
+function BasicSorting(chess){
+    let moves  = chess.moves()
+    moves.sort((a, b) => {
+        return (b.isCapture() === a.isCapture()) ? 0 : b.isCapture() ? 1 : -1;
+    });
+    moves = moves.filter((move) => {
+        if(move.isPromotion()){
+            if(move.promotion() != "q"){
+                return false
+            }
+        }
+        return true
+    })
+    return moves
+}
+
+function forceKingToCornerEndgameEval(friendlyKingSquare, opponentKingSquare , rooks) {
     let evaluation = 0;
 
     // Extract ranks (rows) and files (columns) for both kings
@@ -401,238 +386,98 @@ function forceKingToCornerEndgameEval(friendlyKingSquare, opponentKingSquare , r
     return evaluation / 5;
 }
 
-
-
-
-
-
-
-
-    function getOpeningMove(fen){
-        if(book.has(fen)){
-            const moves = book.get(fen);
-            const len = moves.length
-            const index = Math.floor(Math.random() * len)
-            return [moves[index].slice(0 ,2) ,moves[index].slice(2 ,4) ]
-        }else return 0
-    }
-
-function sortingMoves5(fen , isWhite , map = false){
-
-    const MovesMap = new Map()
-    let chess = new Position(fen);
-    let bestMove = null;
-    let bestScore = null;
-    let steps = { count:0 }
-    let skips = { count:0 }
-    let moves = sortedMoves2(chess);
-    let scoreCounter = new Map()
-
-    for(const move of moves){
-        chess.play(move)
-        let score = minimax2(chess.fen() , 0 , false  , -Infinity , Infinity  , isWhite , 3 , MovesMap)
-        scoreCounter.set(move , score)
-        chess = new Position(fen)
-    }
-
-    if(MovesMap){
-        moves = moves.sort((a, b) => 
-            (scoreCounter.get(b) || 0) - (scoreCounter.get(a) || 0)
-        );
-        moves = moves.map((move) => {
-            return { from: move.from() , to: move.to()}
-        })
-        // if(moves.length > 5){
-        //     moves = moves.slice(0 , 5)
-        // }
-        MovesMap.set(fen , moves)
-    }
-
-    
-    return MovesMap
-}
-
-function sortingMoves6(fen , isWhite){
-    let map = new Map()
-    const steps = { count: 0}
-    minimax2(fen , 0 , false , -Infinity , Infinity , isWhite , 3, map , steps);
-    return map
-}
-
-function minimax2(fen , depth , isMaximizing , alpha , beta ,isWhite ,maxDepth ,sortMap = false , steps){
-    steps.count++
-    let base = new Position(fen)
-    if(base.isCheckmate() && !isMaximizing){
-        return 1000 - depth;
-    }else if(base.isCheckmate() && isMaximizing){
-        return depth - 1000
-    }else if(base.isDead() || base.isStalemate()){
-        return 0;
-    }else if(depth == maxDepth){
-        return evaluate(fen , isWhite , depth);
-    }
-    const Scores = new Map()
-
-        let moves = sortedMoves2(base)
-
-        if(isMaximizing){
-            let bestScore = -Infinity;
-            for(const move of moves){
-                let chess = new Position(fen)
-                chess.play(move);
-                let score = minimax2(chess.fen() , depth + 1 , false , alpha , beta  , isWhite ,   maxDepth  , sortMap , steps);
-                Scores.set(move , score)
-                bestScore = Math.max(bestScore, score);
-                alpha = (alpha < score ? score : alpha);
-                if(alpha >= beta){
-                    break;
-                }
+function evaluateEndgame(ourKing, enemyKing, numberOfPieces , ourRooks) {
+    let evaluation = 0;
+    let fileOP = false;
+    let rankOP = false;
+    // Convert king positions to numerical values
+    const enemyKingFile = enemyKing[0].charCodeAt() - 96;  // a=1, b=2, etc.
+    const enemyKingRank = parseInt(enemyKing[1]);
+    const ourKingFile = ourKing[0].charCodeAt() - 96;
+    const ourKingRank = parseInt(ourKing[1]);
+        
+    if (numberOfPieces <= 4) {  // We're in a basic endgame
+        // 1. Push enemy king to the edge
+        // Check file distance to nearest edge
+        const enemyFileEdgeDistance = Math.min(enemyKingFile - 1, 8 - enemyKingFile);
+        // Check rank distance to nearest edge
+        const enemyRankEdgeDistance = Math.min(enemyKingRank - 1, 8 - enemyKingRank);
+            
+        // The closer to the edge, the higher the bonus (max 70 points)
+        evaluation += (7 - enemyFileEdgeDistance) * 5;
+        evaluation += (7 - enemyRankEdgeDistance) * 5;
+            
+        // 2. Keep our king close to enemy king
+        const fileDistance = Math.abs(ourKingFile - enemyKingFile);
+        const rankDistance = Math.abs(ourKingRank - enemyKingRank);
+        const totalDistance = fileDistance + rankDistance;
+            
+        // Reward closer distance between kings (max 140 points)
+        evaluation += (14 - totalDistance) * 10;
+            
+        // 3. Big bonus if we've forced the enemy king to an edge
+        if (enemyKingFile === 1 || enemyKingFile === 8 || 
+            enemyKingRank === 1 || enemyKingRank === 8) {
+            evaluation += 100;
             }
-            TT.set(fen , [bestScore , maxDepth])
-            if(sortMap){
-                moves = moves.filter(move => Scores.get(move) != undefined)
-                let moves1 = [...moves].sort((a, b) => (Scores.get(a) || 0) - (Scores.get(b) || 0));
-                // moves1 = moves1.map((move) => {
-                //     return { from: move.from() , to: move.to() , score: Scores.get(move)}
-                // })
-                if(moves1.length > 8){
-                    moves1 = moves1.slice(0 , 8)
-                }
-                sortMap.set(fen , moves1)
-            }
-            return bestScore;
-        }else{
-            let bestScore = Infinity;
-            for(const move of moves){
-                let chess = new Position(fen)
-                chess.play(move)
-                let score = minimax2(chess.fen() , depth + 1 , true  , alpha , beta  , isWhite  , maxDepth  , sortMap , steps);
-                bestScore = Math.min(bestScore, score);
-                Scores.set(move, score)
-                beta = (beta < score ? beta : score);
-                if(alpha >= beta){
-                    break;
-                }
-            }
-            TT.set(fen , [bestScore , maxDepth])
-            if(sortMap){
-                moves = moves.filter(move => Scores.get(move) != undefined)
-                let moves1 = [...moves].sort((a, b) => (Scores.get(b) || 0) - (Scores.get(a) || 0));
-                // moves1 = moves1.map((move) => {
-                //     return { from: move.from() , to: move.to() , score: Scores.get(move)}
-                // })
-                if(moves1.length > 8){
-                    moves1 = moves1.slice(0 ,8)
-                }
-                sortMap.set(fen , moves1)
-            }
-
-            return bestScore;
-}}
-
-
-    
-    
-function sortedMoves4(fen , isWhite = false , FENcounter){
-    
-    let chess = new Position(fen);
-    let bestMove = null;
-    let bestScore = null;
-    let steps = { count:0 }
-    let skips = { count:0 }
-    let moves = sortedMoves2(chess);
-    let scoreCounter = new Map()
-
-    console.time("sorting 2")
-    for(const move of moves){
-        chess.play(move)
-        let score = minimax(chess.fen() , 0 , false , steps , -Infinity , Infinity , skips , isWhite , 0 , 1 , FENcounter , true)
-        scoreCounter.set(move , score)
-        chess = new Position(fen)
-    }
-    console.timeEnd("sorting 2")
-
-    moves.sort((a , b) => scoreCounter.get(b) - scoreCounter.get(a))
-
-    // Calculate the top 25% of moves
-    if(moves.length > 5){
-
-        // const topPercentage = 0.2;
-        // const topMovesCount = Math.ceil(moves.length * topPercentage);
-        // // Return the top 25% of moves
-        // return moves.slice(0, topMovesCount);
-
-        return moves.slice(0 , 5)
-    }else {
-        // const topPercentage = 0.1;
-        // const topMovesCount = Math.ceil(moves.length * topPercentage);
-        // // Return the top 25% of moves
-        // return moves.slice(0, topMovesCount);
-        return moves
-    }
-
-}
-function sortedMoves3(fen , isWhite = false , FENcounter){
-    let chess = new Position(fen);
-    let bestMove = null;
-    let bestScore = null;
-    let steps = { count:0 }
-    let skips = { count:0 }
-    let moves = sortedMoves2(chess);
-    let scoreCounter = new Map()
-
-
-    for(const move of moves){
-        chess.play(move)
-        let score = minimax(chess.fen() , 0 , false , steps , -Infinity , Infinity , skips , isWhite , 0 , 1 , FENcounter , true)
-        scoreCounter.set(move , score)
-        chess = new Position(fen)
-    }
-
-    moves.sort((a , b) => scoreCounter.get(b) - scoreCounter.get(a))
-
-    // Calculate the top 25% of moves
-    if(moves.length > 5){
-
-        // const topPercentage = 0.2;
-        // const topMovesCount = Math.ceil(moves.length * topPercentage);
-        // // Return the top 25% of moves
-        // return moves.slice(0, topMovesCount);
-
-        return moves.slice(0 , 5)
-    }else {
-        // const topPercentage = 0.1;
-        // const topMovesCount = Math.ceil(moves.length * topPercentage);
-        // // Return the top 25% of moves
-        // return moves.slice(0, topMovesCount);
-        return moves
-    }
-
-}
-
-function sortedMoves2(chess){
-    let moves  = chess.moves()
-    moves.sort((a, b) => {
-        return (b.isCapture() === a.isCapture()) ? 0 : b.isCapture() ? 1 : -1;
-    });
-    moves = moves.filter((move) => {
-        if(move.isPromotion()){
-            if(move.promotion() != "q"){
-                return false
+            
+            // 4. Even bigger bonus if enemy king is in a corner
+        if ((enemyKingFile === 1 || enemyKingFile === 8) && 
+            (enemyKingRank === 1 || enemyKingRank === 8)) {
+            evaluation += 200;
+        }
+            
+            // 5. Bonus for kings being in opposition
+        if (Math.abs(ourKingFile - enemyKingFile) === 2 && 
+            ourKingRank === enemyKingRank) {
+            fileOP = true;
+            evaluation += 100;  // Horizontal opposition
+        }
+        if (Math.abs(ourKingRank - enemyKingRank) === 2 && 
+            ourKingFile === enemyKingFile) {
+            rankOP = true;
+            evaluation += 100;  // Vertical opposition
+        }
+            //penalty if double ROOKS
+        if(ourRooks.length == 2){
+            if(ourRooks[0][0] == ourRooks[1][0]){
+                evaluation -= 50;
+            }else if(ourRooks[0][1] == ourRooks[1][1]){
+                evaluation -= 50;
             }
         }
-        return true
-    })
-    return moves
+    
+            //penalty for rooks being near the king
+        if(ourRooks.length > 0){
+            for(const rook of ourRooks){
+    
+                const rookFile = rook[0].charCodeAt() - 96;
+                const rookRank = parseInt(rook[1])
+    
+                const fileDistance = Math.abs(rookFile - enemyKingFile);
+                const rankDistance = Math.abs(rookRank - enemyKingRank);
+                const totalDistance = fileDistance + rankDistance;
+                evaluation += totalDistance * 50
+                if(rankOP && rookRank == enemyKingRank){
+                    evaluation += 1000;
+                }else if(fileOP && rookFile == enemyKingFile){
+                    evaluation += 1000;
+                }
+            }
+    
+        }
+    
+        //reward for taking opposition when enemyking is in the corner
+    
+    
+    
+    }
+        
+    return evaluation / 100;  // Scale down the evaluation
 }
-
-
-
-
 
 function material(square , chess){
     const piece = chess.square(square);
-    let value = 0
     const values = {
         p : 1,
         b : 3,
@@ -658,7 +503,6 @@ function material(square , chess){
 }
 
 function pawnEval(square , chess){
-    const center = ["e4" , "e5" , "d4" , "d5"]
     let score = 0;
     let rank = parseInt(square[1])
     let piece = chess.square(square);
@@ -672,16 +516,15 @@ function pawnEval(square , chess){
     return 0;
 }
 
-function conquer(square , chess){
+function conquer(chess){
     const squares = {
         // Central squares (higher importance)
-        e4: 0.3, e5: 0.3, d4: 0.3, d5: 0.3,
         
         // Adjacent squares to the center
         c6: 0.2, d6: 0.2, e6: 0.2, f6: 0.2,
         c3: 0.2, d3: 0.2, e3: 0.2, f3: 0.2,
-        c5: 0.2, d5: 0.2, e5: 0.2, f5: 0.2,
-        c4: 0.2, d4: 0.2, e4: 0.2, f4: 0.2,
+        c5: 0.2, d5: 0.3, e5: 0.3, f5: 0.2,
+        c4: 0.2, d4: 0.3, e4: 0.3, f4: 0.2,
         
         // Outer center squares (less importance)
         b6: 0.1, g6: 0.1,
@@ -701,13 +544,34 @@ function conquer(square , chess){
     };
 
     let score = 0;
-    if(chess.isAttacked(square , "w")){
-        score += squares[square] * 0.5;
-    }else if(chess.isAttacked(square , "b")){
-        score -= squares[square] * 0.5;
+    if(chess.turn() == "w"){
+        const moves = chess.moves()
+        for(const move of moves){
+            score += squares[move.to()]
+        }
+        chess.playNullMove();
+        const moves2 = chess.moves();
+        for(const move of moves2){
+            score -= squares[move.to()]
+        }
+        chess.playNullMove()
+    }else{
+        const moves = chess.moves()
+        for(const move of moves){
+            score -= squares[move.to()]
+        }
+        chess.playNullMove();
+        const moves2 = chess.moves();
+        for(const move of moves2){
+            score += squares[move.to()]
+        }
+        chess.playNullMove()
     }
     return score;
+
 }
+
+
 
 function development(square , chess){
     const minor = ["n" , "b" , "q"]
@@ -756,9 +620,9 @@ function evaluate(fen , isWhite , depth){
         }
         score += material(squareNames[i] , chess);
         score += pawnEval(squareNames[i] , chess);
-        score += conquer(squareNames[i] , chess);
         score += development(squareNames[i] , chess);
     }
+    // score += conquer(chess)
     score = isWhite ? -score : score;
     if(["c1" , "g1" , "c8" , "g8"].includes(ourKing) && numberOfPieces > 24){
         score += 0.5
@@ -776,7 +640,7 @@ function evaluate(fen , isWhite , depth){
 }
 
 
-function minimax(fen , depth , isMaximizing, steps , alpha , beta , skips , isWhite , isOVERSEARCH , maxDepth , FENcounter , Map){
+function minimax(fen , depth , isMaximizing, steps , alpha , beta , skips , isWhite  , maxDepth , MovesMap){
     steps.count++;
     let base = new Position(fen)
     if(base.isCheckmate() && !isMaximizing){
@@ -793,9 +657,15 @@ function minimax(fen , depth , isMaximizing, steps , alpha , beta , skips , isWh
         skips.count++;
         return TT.get(fen)[0];
     }else{
-        let moves = sortedMoves2(base)
-        if(Map.has(fen)){
-            moves = Map.get(fen)
+        let moves = BasicSorting(base);
+        if(MovesMap.has(fen)){
+            moves = MovesMap.get(fen)}
+        else if(depth == maxDepth - 1 && false){
+            
+            moves = moves.filter(move => { return move.isCapture();})
+            if(moves.length == 0){
+                return evaluate(fen , isWhite , depth)
+            }
         }
 
         if(isMaximizing){
@@ -803,7 +673,7 @@ function minimax(fen , depth , isMaximizing, steps , alpha , beta , skips , isWh
             for(const move of moves){
                 let chess = new Position(fen)
                 chess.play(move);
-                let score = minimax(chess.fen() , depth + 1 , false , steps , alpha , beta , skips , isWhite , isOVERSEARCH , maxDepth , FENcounter   ,Map);
+                let score = minimax(chess.fen() , depth + 1 , false , steps , alpha , beta , skips , isWhite  , maxDepth , MovesMap);
                 bestScore = Math.max(bestScore, score);
                 alpha = (alpha < score ? score : alpha);
                 if(alpha >= beta){
@@ -817,7 +687,7 @@ function minimax(fen , depth , isMaximizing, steps , alpha , beta , skips , isWh
             for(const move of moves){
                 let chess = new Position(fen)
                 chess.play(move)
-                let score = minimax(chess.fen() , depth + 1 , true , steps , alpha , beta , skips , isWhite , isOVERSEARCH , maxDepth , FENcounter , Map);
+                let score = minimax(chess.fen() , depth + 1 , true , steps , alpha , beta , skips , isWhite  , maxDepth , MovesMap);
                 bestScore = Math.min(bestScore, score);
                 beta = (beta < score ? beta : score);
                 if(alpha >= beta){
@@ -830,42 +700,46 @@ function minimax(fen , depth , isMaximizing, steps , alpha , beta , skips , isWh
 
 }
 
-export function engine(fen , isWhite = false , FENcounter = EmptyMap){
+export function engine(fen , isWhite = false){
+    console.time("time")
     let chess = new Position(fen)
     let steps = { count: 0}
     let skips = { count: 0}
     let bestMove = null
     let bestScore = -Infinity
-    console.time("firstSort")
-    // const moves = sortedMoves3(fen , isWhite);
-    const moves = sortedMoves2(chess)
-    console.timeEnd("firstSort")
     let numberOfPieces = 0;
     for(const square of squareNames){
         if(chess.square(square) != '-'){
             numberOfPieces++;
         }
     }
-    const maxdepth = 3
-    const moveOpening = sortedMoves2(chess)
+    const maxdepth = 1
+    const moveOpening = BasicSorting(chess)
     const opening = getOpeningMove(fen);
-    // console.log(moveOpening.length , " number of moves")
-    if(opening != 0 && false){
+    if(opening != 0){
         for(const move of moveOpening){
             if(move.from() == opening[0] && move.to() == opening[1]){
-                console.log("Theory")
+                console.log("TheoryMaster")
                 return [move.from() , move.to() , false]
-                return `${move.from()}${move.to()}`
+                // return `${move.from()}${move.to()}`
             }
         }
     }
+    // console.time("sorting time")
+    let MovesMap = searchSorting(fen , isWhite);
+    // console.timeEnd("sorting time")
+    let moves = BasicSorting(chess)
+    if(MovesMap.has(fen)){
+        moves = MovesMap.get(fen)
+        // console.log(moves.map(move => { return {from: move.from() , to: move.to()}}))
+    }
+    // MovesMap = new Map();
+
+
 
 
     for(const move of moves){
         chess.play(move);
-        if(false){
-            continue;
-        }
         let ourRooks = []
         let ourKing = null;
         let enemyKing = null;
@@ -884,7 +758,8 @@ export function engine(fen , isWhite = false , FENcounter = EmptyMap){
                 }
             }
         }
-        let score = minimax(chess.fen() , 0 , false , steps , -Infinity , Infinity , skips , isWhite , 0 , maxdepth , FENcounter)
+        let score = -9999
+        score = minimax(chess.fen() , 0 , false , steps , -Infinity , Infinity , skips , isWhite , maxdepth , MovesMap)
         if(numberOfPieces <= 4){
             score += forceKingToCornerEndgameEval(ourKing , enemyKing , ourRooks , fen);
         }
@@ -897,84 +772,11 @@ export function engine(fen , isWhite = false , FENcounter = EmptyMap){
     console.log("score is " , bestScore)
     console.log("bestMove : " , [bestMove.from() , bestMove.to()] , bestScore , "number of eval : " , steps.count , "number of skips : " , skips.count)
     console.log("transposition table size after this move " , TT.size)
+    console.timeEnd("time")
     return [bestMove.from() , bestMove.to() , bestMove.isCastling()];
-    // return `${bestMove.from()}${bestMove.to()}`
+    return `${bestMove.from()}${bestMove.to()}`
 }
-export function engine2(fen , isWhite = false , FENcounter = EmptyMap){
-    let chess = new Position(fen)
-    let steps = { count: 0}
-    let skips = { count: 0}
-    let bestMove = null
-    let bestScore = -Infinity
-    let moves = sortedMoves2(chess)
-    console.time("firstSort")
-    const map = sortingMoves6(fen , isWhite)
-    if(map.has(fen)){
-        moves = map.get(fen)
-    }
-    console.timeEnd("firstSort")
-    let numberOfPieces = 0;
-    for(const square of squareNames){
-        if(chess.square(square) != '-'){
-            numberOfPieces++;
-        }
-    }
-    console.log(moves.length)
-    console.log(moves.map(a => {return {from: a.from() , to: a.to()}}))
-    const maxdepth = 5
-    const moveOpening = sortedMoves2(chess)
-    const opening = getOpeningMove(fen);
-    // console.log(moveOpening.length , " number of moves")
-    if(opening != 0 && false){
-        for(const move of moveOpening){
-            if(move.from() == opening[0] && move.to() == opening[1]){
-                console.log("Theory")
-                return [move.from() , move.to() , false]
-                return `${move.from()}${move.to()}`
-            }
-        }
-    }
 
-
-    for(const move of moves){
-        chess.play(move);
-        if(false){
-            continue;
-        }
-        let ourRooks = []
-        let ourKing = null;
-        let enemyKing = null;
-        const ourKingColor = isWhite ? "b" : "w"
-        for(const square of squareNames){
-            const piece = chess.square(square)
-            if(piece[1] == "k"){
-                if(piece[0] == ourKingColor){
-                    ourKing = square
-                }else{
-                    enemyKing = square
-                }
-            }else if(piece[1] == "r"){
-                if(piece[0] == ourKingColor){
-                    ourRooks = [ ...ourRooks , square ]
-                }
-            }
-        }
-        let score = minimax(chess.fen() , 0 , false , steps , -Infinity , Infinity , skips , isWhite , 0 , maxdepth , FENcounter , map)
-        if(numberOfPieces <= 4){
-            score += forceKingToCornerEndgameEval(ourKing , enemyKing , ourRooks , fen);
-        }
-        if(score > bestScore){
-            bestScore = score
-            bestMove = move
-        }
-        chess = new Position(fen)
-    }
-    console.log("score is " , bestScore)
-    console.log("bestMove : " , [bestMove.from() , bestMove.to()] , bestScore , "number of eval : " , steps.count , "number of skips : " , skips.count)
-    console.log("transposition table size after this move " , TT.size)
-    return [bestMove.from() , bestMove.to() , bestMove.isCastling()];
-    // return `${bestMove.from()}${bestMove.to()}`
-}
 
 
 
@@ -989,10 +791,24 @@ export function engine2(fen , isWhite = false , FENcounter = EmptyMap){
 //     console.log("Not enough arguments provided.");
 // }
 
+// console.time("OG")
+
+// console.log(engine("rnbqkbnr/pppppppp/8/8/5P2/8/PPPPP1PP/RNBQKBNR b KQkq - 0 1" , false))
+
+// console.timeEnd("OG")
+
+
+
 // console.time("time")
 
-// engine("r2q1rk1/ppp2ppp/2n2n2/2bpp3/2BPP3/2N2N2/PPP2PPP/R1BQ1RK1 w - - 0 1" , false) // 39 move
+// console.log(engine("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" , false)) // starting position
 
+
+// console.timeEnd("time")
+
+// console.time("time")
+
+// console.log(engine("r2q1rk1/ppp2ppp/2n2n2/2bpp3/2BPP3/2N2N2/PPP2PPP/R1BQ1RK1 w - - 0 1" , false))
 
 // console.timeEnd("time")
 
@@ -1002,12 +818,12 @@ export function engine2(fen , isWhite = false , FENcounter = EmptyMap){
 
 
 // console.timeEnd("time")
-console.time("time")
+// console.time("time")
 
-console.log(engine2("rnbqkbnr/8/8/8/8/8/8/RNBQKBNR w KQkq - 0 1" , false)) // 50 moves 
+// engine("r1bqkb1r/ppp1ppp1/n1q4q/8/8/N1Q4Q/PPP1PPP1/R1BQKB1R w KQkq - 0 1" , false) // suggested by claude for complexity
 
 
-console.timeEnd("time")
+// console.timeEnd("time")
 
 // console.time("time")
 
@@ -1023,7 +839,7 @@ console.timeEnd("time")
 // console.timeEnd("time")
 // console.time("time")
 
-// console.log(engine("rnb2k1r/pp2bppp/2p5/q1P5/2B3NQ/8/PPP1NnPP/R1B2K1R w - - 3 9" , false)) // 18 move
+// console.log(engine("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" , false)) // 18 move
 
 
 // console.timeEnd("time")
