@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Square from './Square.jsx'
 import { layout } from './assets.jsx'
 import { layoutToFEN } from "./assets.jsx";
-const worker = new Worker(new URL("../../chessWorker.js", import.meta.url), { type: 'module' });
+// const worker = new Worker(new URL("../../chessWorker.js", import.meta.url), { type: 'module' });
 
 
 
@@ -175,16 +175,17 @@ function Board({white}) {
 
 
     function getMove(fen) {
-        return new Promise((resolve) => {
-            // Send the FEN and additional data to the worker
-            worker.postMessage([fen, white, FENcounter]);
+        // return new Promise((resolve) => {
+        //     // Send the FEN and additional data to the worker
+        //     worker.postMessage([fen, white, FENcounter]);
     
-            // Wait for the worker to respond
-            worker.onmessage = function(message) {
-                console.log(message.data); // Log the result from the worker
-                resolve(message.data);      // Resolve the promise with the worker's result
-            };
-        });
+        //     // Wait for the worker to respond
+        //     worker.onmessage = function(message) {
+        //         console.log(message.data); // Log the result from the worker
+        //         resolve(message.data);      // Resolve the promise with the worker's result
+        //     };
+        // });
+        return [1 , 1, 1]
     }
     
 
